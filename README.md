@@ -41,12 +41,12 @@
 </p>
 <p>
     <font dir="auto" style="vertical-align: inherit;">
-        <font dir="auto" style="vertical-align: inherit;">&nbsp;- PSTD::iterate Um cont&ecirc;iner falso. Feito com o objetivo de deixar mais est&eacute;tico o uso de for loop com interadores, nos casos em que o loop n&atilde;o come&ccedil;a em come&ccedil;ar.</font>
+        <font dir="auto" style="vertical-align: inherit;">&nbsp;- PSTD::iterate Um cont&ecirc;iner falso. Feito com o objetivo de permitir o uso do operador () em containers da biblioteca.</font>
     </font>
 </p>
 <p>
     <font dir="auto" style="vertical-align: inherit;">
-        <font dir="auto" style="vertical-align: inherit;">&nbsp; &nbsp; ex: for(auto&amp; value : PSTD::iterate(container, 1, 5)){ c&oacute;digo }</font>
+        <font dir="auto" style="vertical-align: inherit;">&nbsp; &nbsp; ex: for(auto&amp; value : smart_array(1,5)){ c&oacute;digo }</font>
     </font>
 </p>
 <p><br></p>
