@@ -46,7 +46,7 @@
 </p>
 <p>
     <font dir="auto" style="vertical-align: inherit;">
-        <font dir="auto" style="vertical-align: inherit;">&nbsp; &nbsp; ex: for(auto&amp; value : smart_array(1,5)){ c&oacute;digo }</font>
+        <font dir="auto" style="vertical-align: inherit;">&nbsp; &nbsp; ex: for(auto&amp; value : arr(1,5)){ c&oacute;digo } // itera pela posição 1 a 4</font>
     </font>
 </p>
 <p><br></p>
