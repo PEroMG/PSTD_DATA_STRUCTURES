@@ -7,18 +7,59 @@
 #include <memory>
 
 
-#if !defined(PSTD_DATA_STRUCTURE_NO_OSTREAM) 
-#include <ostream>
+#if !defined(PSTD_DATA_STRUCTURE_NO_IOSTREAM) 
+#include <iostream>
 #endif // DEBUG
 
 
 namespace PSTD {
 
+
+	template <typename _OBJ>
+	using iterator_type = decltype(std::declval<_OBJ>().begin());
+	template <typename _OBJ>
+	using reverse_iterator_type = decltype(std::declval<_OBJ>().rbegin());
+
+	template <class _OBJ, class = void>
+	struct has_begin : std::false_type {};
+	template <class _OBJ>
+	struct has_begin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().begin()) > > : std::true_type {};
+
+	template <class _OBJ, class = void>
+	struct has_end : std::false_type {};
+	template <class _OBJ>
+	struct has_end<_OBJ, std::void_t< decltype(std::declval<_OBJ>().end()) > > : std::true_type {};
+
+	
+
+
+	template <class _OBJ, class = void>
+	struct has_increment: std::false_type {};
+	template <class _OBJ>
+	struct has_increment<_OBJ, std::void_t< decltype(std::declval<_OBJ>().operator++()) > > : std::true_type {};
+
+	template <class _OBJ, class = void>
+	struct has_dereference: std::false_type{};
+	template <class _OBJ>
+	struct has_dereference<_OBJ, std::void_t< decltype(std::declval<_OBJ>().operator*()) > > : std::true_type {};
+
+	template <class _OBJ, class = void>
+	struct has_not_equal : std::false_type {};
+	template <class _OBJ>
+	struct has_not_equal<_OBJ, std::void_t< decltype(std::declval<_OBJ>() != std::declval<_OBJ>()) > > : std::true_type {};
+
+	
+	template <class _OBJ>
+	struct is_valid_iterator : std::integral_constant<bool, PSTD::has_increment<_OBJ>::value && PSTD::has_dereference<_OBJ>::value && PSTD::has_not_equal<_OBJ>::value> {};
+	
+
+
 	template <class _Container>
 	class iterate {
 	public:
+		static_assert(PSTD::has_begin<_Container>::value&& PSTD::has_end<_Container>::value, "_Container must have begin() and end() method");
 		using IteratorType = decltype(std::declval<_Container>().begin());
-
+		static_assert(PSTD::is_valid_iterator<IteratorType>::value, "Iterator must sastify minimal requirements to be iterable");
 	private:
 		IteratorType first;
 		IteratorType finish;
@@ -38,7 +79,7 @@ namespace PSTD {
 		iterate(_Container& container) : first(container.begin()), finish(container.end()) {}
 		iterate(_Container& container, size_t inf) : first(container.begin() + inf), finish(container.end()) {}
 		iterate(_Container& container, size_t inf, size_t sup) : first(container.begin() + inf), finish(container.begin() + sup) {}
-		iterate(IteratorType inf, IteratorType sup):first(inf), finish(sup){}
+		iterate(IteratorType inf, IteratorType sup) :first(inf), finish(sup) {}
 	};
 
 	class PyRange {
@@ -61,7 +102,7 @@ namespace PSTD {
 			fake_iterator(size_t position, size_t& step) :val(position), stp(step) {}
 
 			bool operator!=(const fake_iterator& fake) {
-				return this->val != fake.val;
+				return this->val <= fake.val;
 			}
 
 			PSTD::PyRange::fake_iterator operator++() {
@@ -83,8 +124,8 @@ namespace PSTD {
 		}
 	};
 
-#if !defined(PSTD_DATA_STRUCTURE_NO_OSTREAM)
-	//Classe de teste, a mesma age como o tipo nativo t. Porém a mesma gera saidas de console ao longo do processo
+#if !defined(PSTD_DATA_STRUCTURE_NO_IOSTREAM)
+	//Classe de teste, a mesma age como o tipo nativo t. PorÃ©m a mesma gera saidas de console ao longo do processo
 	template <typename t>
 	class lifetime {
 		t val = {};
@@ -108,10 +149,7 @@ namespace PSTD {
 			std::cerr << "PSTD::lifetime<" << typeid(t).name() << "> move constructor\n";
 		}
 		template <typename... Args> lifetime(Args&&... args) : val(std::forward<Args>(args)...) {
-			val = t(std::forward<Args>(args)...);
-
 			std::cerr << "PSTD::lifetime<" << typeid(t).name() << "> (args) constructor\n";
-
 		}
 		~lifetime() {
 			std::cerr << "PSTD::lifetime<" << typeid(t).name() << "> destructor\n";
@@ -138,7 +176,7 @@ namespace PSTD {
 	public:
 		ty internal_array[m_size];
 
-	
+
 
 		using value_type = ty;
 
@@ -306,10 +344,10 @@ namespace PSTD {
 		PSTD::array<ty, m_size>::iterator end() {
 			return PSTD::array<ty, m_size>::iterator(internal_array + m_size);
 		}
-		PSTD::array<ty, m_size>::const_iterator begin() const{
+		PSTD::array<ty, m_size>::const_iterator begin() const {
 			return PSTD::array<ty, m_size>::const_iterator(internal_array);
 		}
-		PSTD::array<ty, m_size>::const_iterator end() const{
+		PSTD::array<ty, m_size>::const_iterator end() const {
 			return PSTD::array<ty, m_size>::const_iterator(internal_array + m_size);
 		}
 
@@ -390,7 +428,7 @@ namespace PSTD {
 		PSTD::iterate<PSTD::array<ty, m_size>> operator() (size_t inf, size_t sup) {
 			return PSTD::iterate<PSTD::array<ty, m_size>>(*this, inf, sup);
 		}
-		PSTD::iterate<const PSTD::array<ty, m_size>> operator() (size_t inf, size_t sup) const{
+		PSTD::iterate<const PSTD::array<ty, m_size>> operator() (size_t inf, size_t sup) const {
 			return PSTD::iterate<const PSTD::array<ty, m_size>>(*this, inf, sup);
 		}
 
@@ -438,11 +476,11 @@ namespace PSTD {
 		array() = default;
 		array(array&& move) = default;
 		array(array& copy) = default;
-		
+
 
 	};
 
-#if !defined(PSTD_DATA_STRUCTURE_NO_OSTREAM)
+#if !defined(PSTD_DATA_STRUCTURE_NO_IOSTREAM)
 	template <class t, size_t m_size>
 	std::ostream& operator<<(std::ostream& os, PSTD::array<t, m_size>& arr) {
 		os << '[';
@@ -567,7 +605,7 @@ namespace PSTD {
 			}
 		}
 		template <class other_iterator>
-		void deep_copy_from_iterators(other_iterator first, other_iterator last){
+		void deep_copy_from_iterators(other_iterator first, other_iterator last) {
 			for (size_t i = 0; i < m_size; i++, ++first) {
 				traits::construct(alloc, m_arr + i, *first);
 			}
@@ -575,7 +613,7 @@ namespace PSTD {
 
 
 	public:
-		
+
 		smart_array() : m_size(0), m_capacity(2), alloc(Alloc()) {
 			m_arr = traits::allocate(alloc, m_capacity);
 		}
@@ -595,25 +633,25 @@ namespace PSTD {
 			}
 		}
 
-		smart_array(PSTD::smart_array<t, Alloc>& other) : 
+		smart_array(PSTD::smart_array<t, Alloc>& other) :
 			alloc(traits::select_on_container_copy_construction(other.alloc)) {
 			this->deep_copy_array(other);
 		}
-		smart_array(PSTD::smart_array<t, Alloc>&& other) noexcept(traits::propagate_on_container_move_assignment::value || traits::is_always_equal::value) : 
+		smart_array(PSTD::smart_array<t, Alloc>&& other) noexcept(traits::propagate_on_container_move_assignment::value || traits::is_always_equal::value) :
 			m_size(other.m_size), m_capacity(other.m_capacity), m_arr(other.m_arr), alloc(std::move(other.alloc)) {
 			other.m_arr = nullptr;
 			other.m_size = other.m_capacity = 0;
 		}
-		smart_array(PSTD::smart_array<t, Alloc>& other, const Alloc& _alloc) 
+		smart_array(PSTD::smart_array<t, Alloc>& other, const Alloc& _alloc)
 			: alloc(_alloc) {
 			this->deep_copy_array(other);
 		}
-		smart_array(PSTD::smart_array<t, Alloc>&& other, const Alloc& _alloc) noexcept 
+		smart_array(PSTD::smart_array<t, Alloc>&& other, const Alloc& _alloc) noexcept
 			: alloc(_alloc) {
 			this->move_if_possible(std::move(other), typename traits::is_always_equal{});
 		}
 
-		smart_array(std::initializer_list<t> list, const Alloc& _alloc = Alloc()) 
+		smart_array(std::initializer_list<t> list, const Alloc& _alloc = Alloc())
 			: m_size(list.size()), m_capacity(m_size < 2 ? 2 : m_size), alloc(_alloc) {
 			// by capacity being size my 2, guarantes that the minimum alocation is 2
 			m_arr = traits::allocate(alloc, m_capacity);
@@ -625,7 +663,7 @@ namespace PSTD {
 		}
 
 		template <class _InIt, std::enable_if_t<!std::is_integral_v<_InIt>, int> = 0>
-		smart_array(_InIt first, _InIt last, const Alloc& _alloc = Alloc()) 
+		smart_array(_InIt first, _InIt last, const Alloc& _alloc = Alloc())
 			: m_size(std::distance(first, last)), m_capacity(m_size > 2 ? m_size : 2), alloc(_alloc) {
 
 			m_arr = traits::allocate(alloc, m_capacity);
@@ -634,7 +672,7 @@ namespace PSTD {
 		}
 
 		template <class _Container>
-		smart_array(_Container& container, const Alloc& _alloc = Alloc()) 
+		smart_array(_Container& container, const Alloc& _alloc = Alloc())
 			: m_size(std::distance(container.begin(), container.end())), m_capacity(m_size > 2 ? m_size : 2), alloc(_alloc) {
 			using _InIt = decltype(std::declval<_Container>().begin());
 			//decltype(*container.begin());
@@ -644,7 +682,6 @@ namespace PSTD {
 			this->deep_copy_from_iterators<_InIt>(container.begin(), container.end());
 
 		}
-
 
 		template <class _Internal_Container>
 		smart_array(PSTD::iterate<_Internal_Container> iterators, const Alloc& _alloc = Alloc()) :
@@ -665,7 +702,7 @@ namespace PSTD {
 		}
 
 		// assigment operators
-		
+
 		PSTD::smart_array<t, Alloc>& operator= (PSTD::smart_array<t, Alloc>&& other) noexcept (traits::propagate_on_container_move_assignment::value || traits::is_always_equal::value) {
 			if (this == &other) { return *this; }
 
@@ -911,10 +948,10 @@ namespace PSTD {
 		PSTD::smart_array<t, Alloc>::iterator end() {
 			return PSTD::smart_array<t, Alloc>::iterator(m_arr + m_size);
 		}
-		PSTD::smart_array<t, Alloc>::const_iterator begin() const{
+		PSTD::smart_array<t, Alloc>::const_iterator begin() const {
 			return PSTD::smart_array<t, Alloc>::const_iterator(m_arr);
 		}
-		PSTD::smart_array<t, Alloc>::const_iterator end() const{
+		PSTD::smart_array<t, Alloc>::const_iterator end() const {
 			return PSTD::smart_array<t, Alloc>::const_iterator(m_arr + m_size);
 		}
 
@@ -932,7 +969,7 @@ namespace PSTD {
 		PSTD::smart_array<t, Alloc>::reverse_iterator rend() {
 			return PSTD::smart_array<t, Alloc>::reverse_iterator(this->begin());
 		}
-		PSTD::smart_array<t, Alloc>::const_reverse_iterator rbegin() const{
+		PSTD::smart_array<t, Alloc>::const_reverse_iterator rbegin() const {
 			return PSTD::smart_array<t, Alloc>::const_reverse_iterator(this->end());
 		}
 		PSTD::smart_array<t, Alloc>::const_reverse_iterator rend() const {
@@ -956,7 +993,7 @@ namespace PSTD {
 		}
 
 		void push_back(const t& value) {
-			if (m_size >= m_capacity) { // >= inves de == por segurança adicinal
+			if (m_size >= m_capacity) { // >= inves de == por seguranÃ§a adicinal
 				this->Realoc(m_size < 2 ? 2 : m_capacity + (m_capacity >> 1));
 			}
 
@@ -977,7 +1014,7 @@ namespace PSTD {
 			if (m_size >= m_capacity) {
 				size_t new_capacity = growth_policy(m_capacity);
 
-				if (new_capacity < m_size + 1 || new_capacity >= this->max_size()) { 
+				if (new_capacity < m_size + 1 || new_capacity >= this->max_size()) {
 					new_capacity = (m_size < 2) ? 2 : m_capacity + (m_capacity >> 1);
 				} // ignore user imput
 
@@ -1045,7 +1082,7 @@ namespace PSTD {
 		}
 		// makes the amart array until it has n elements avalaible
 		void reserve_until(const size_t& n_val) {
-			// reserves memory only if the smart array don´t have the necessary capacity to conport new n_val elementes
+			// reserves memory only if the smart array donÂ´t have the necessary capacity to conport new n_val elementes
 			if (n_val > reserved()) {
 				Realoc(n_val + m_size);
 			}
@@ -1366,7 +1403,7 @@ namespace PSTD {
 
 			return PSTD::smart_array<t, Alloc>::iterator(&m_arr[pos]);
 		}
-		template< class InputIt, std::enable_if_t<!std::is_integral_v<InputIt>, int> = 0> 
+		template< class InputIt, std::enable_if_t<!std::is_integral_v<InputIt>, int> = 0>
 		PSTD::smart_array<t, Alloc>::iterator insert(size_type pos, InputIt first, InputIt last) {
 			size_t count = std::distance(first, last);
 
@@ -1414,7 +1451,7 @@ namespace PSTD {
 		PSTD::smart_array<t, Alloc>::iterator insert(size_type pos, std::initializer_list<t> list) {
 			size_t count = list.size();
 			auto first = list.begin();
-			
+
 			if (m_size + count >= m_capacity) {
 				t* arr_aux = traits::allocate(alloc, m_size + 1);
 
@@ -1478,26 +1515,26 @@ namespace PSTD {
 
 		/*operator []*/t& operator[] (size_t index) {
 			if (index >= m_size) {
-				throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size));
+				throw std::out_of_range("tryied to acess element (index >= m_size)");
 			}
 			return m_arr[index];
 		}
 		/*operator []*/const t& operator[] (size_t index) const {
 			if (index >= m_size) {
-				throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size));
+				throw std::out_of_range("tryied to acess element (index >= m_size)");
 			}
 			return m_arr[index];
 		}
 
 		t& at(size_t index) {
-			if (index >= m_size) {
-				throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size));
+			if(index >= m_size) {
+				throw std::out_of_range("tryied to acess element (index >= m_size)");
 			}
 			return m_arr[index];
 		}
 		const t& at(size_t index) const {
 			if (index >= m_size) {
-				throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size));
+				throw std::out_of_range("tryied to acess element (index >= m_size)");
 			}
 			return m_arr[index];
 		}
@@ -1508,46 +1545,57 @@ namespace PSTD {
 		/*operator []*/t& operator[] (int32_t index) {
 			if (index < 0) {
 				//negative
-				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element (size_t(-index) > m_size)"); }
 				return m_arr[this->m_size + index];
 			}
-			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element (size_t(index) >= m_size)"); }
 			return m_arr[index];
 		}
 		/*operator []*/const t& operator[] (int32_t index) const {
 			if (index < 0) {
 				//negative
-				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element (size_t(-index) > m_size)"); }
 				return m_arr[this->m_size + index];
 			}
-			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element (size_t(index) >= m_size)"); }
 			return m_arr[index];
 		}
 
 		t& at(int32_t index) {
 			if (index < 0) {
 				//negative
-				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element (size_t(-index) > m_size)"); }
 				return m_arr[this->m_size + index];
 			}
-			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element (size_t(index) >= m_size)"); }
 			return m_arr[index];
 		}
 		const t& at(int32_t index) const {
 			if (index < 0) {
 				//negative
-				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+				if (size_t(-index) > m_size) { throw std::out_of_range("tryied to acess element (size_t(-index) > m_size)"); }
 				return m_arr[this->m_size + index];
 			}
-			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element " + std::to_string(index) + ", while array size is " + std::to_string(m_size)); }
+			if (size_t(index) >= m_size) { throw std::out_of_range("tryied to acess element (size_t(index) >= m_size)"); }
 			return m_arr[index];
 		}
 
 
+		PSTD::iterate<PSTD::smart_array<t, Alloc>> operator() (size_t sup) { 
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<PSTD::smart_array<t, Alloc>>(*this, 0, sup);
+		}
+		PSTD::iterate<const PSTD::smart_array<t, Alloc>> operator() (size_t sup) const {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<PSTD::smart_array<t, Alloc>>(*this, 0, sup);
+		}
+
 		PSTD::iterate<PSTD::smart_array<t, Alloc>> operator() (size_t inf, size_t sup) {
+			if (sup > this->m_size) sup = m_size;
 			return PSTD::iterate<PSTD::smart_array<t, Alloc>>(*this, inf, sup);
 		}
-		PSTD::iterate<const PSTD::smart_array<t, Alloc>> operator() (size_t inf, size_t sup) const{
+		PSTD::iterate<const PSTD::smart_array<t, Alloc>> operator() (size_t inf, size_t sup) const {
+			if (sup > this->m_size) sup = m_size;
 			return PSTD::iterate<const PSTD::smart_array<t, Alloc>>(*this, inf, sup);
 		}
 
@@ -1640,7 +1688,7 @@ namespace PSTD {
 
 	};
 
-#if !defined(PSTD_DATA_STRUCTURE_NO_OSTREAM)
+#if !defined(PSTD_DATA_STRUCTURE_NO_IOSTREAM)
 	template <class t, class Alloc = std::allocator<t>>
 	std::ostream& operator<<(std::ostream& os, PSTD::smart_array<t, Alloc>& arr) {
 		os << '[';
@@ -1694,18 +1742,18 @@ namespace PSTD {
 		return arr;
 	}
 	template<typename t = double, class Alloc = std::allocator<t>>
-	PSTD::smart_array<t, Alloc> arrange(t inf, t sup, t step) {
+	PSTD::smart_array<t, Alloc> arrange(t from, t to, t step) {
 		// sup < inf + step * i
 		// sup - inf < step * i
 		// (sup - inf)/step < i
 		// since we have that i need to be bigger than (sup - inf)/step, the ceil will be enough
 
-		size_t n_size = std::ceil((sup - inf) / step);
+		size_t n_size = std::ceil((to - from) / step);
 
 		PSTD::smart_array<t, Alloc> arr(n_size);
 
 		for (size_t i = 0; i < n_size; i++) {
-			arr[i] = fma(step, i, inf);
+			arr[i] = fma(step, i, from);
 		}
 
 		return arr;
