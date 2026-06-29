@@ -92,7 +92,7 @@ namespace PSTD {
 	private:
 		_IteratorType first;
 		_IteratorType finish;
-
+		
 	public:
 
 
@@ -104,7 +104,9 @@ namespace PSTD {
 			return finish;
 		}
 
-		iterate(_IteratorType inf, _IteratorType sup) :first(inf), finish(sup) {}
+		iterate(_IteratorType inf, _IteratorType sup) :first(inf), finish(sup) {
+			static_assert(PSTD::is_valid_iterator<_IteratorType>::value, "_IteratorType must be a proprer iterator with all the necessary overloads");
+		}
 	};
 
 	template<class _Container>
@@ -479,13 +481,6 @@ namespace PSTD {
 			return internal_array[index % m_size];
 		}
 
-		PSTD::iterate<PSTD::array<ty, m_size>> operator() (size_t inf, size_t sup) {
-			return PSTD::iterate<PSTD::array<ty, m_size>>(*this, inf, sup);
-		}
-		PSTD::iterate<const PSTD::array<ty, m_size>> operator() (size_t inf, size_t sup) const {
-			return PSTD::iterate<const PSTD::array<ty, m_size>>(*this, inf, sup);
-		}
-
 		void swap(PSTD::array<ty, m_size>& other) noexcept {
 			for (size_t i = 0; i < m_size; i++) {
 				std::swap(this->internal_array[i], other.internal_array[i]);
@@ -539,19 +534,19 @@ namespace PSTD {
 			return PSTD::iterate<const_iterator>(this->cbegin(), this->cend());
 		}
 		PSTD::iterate<iterator> operator() (size_t sup) {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > m_size) sup = m_size;
 			return PSTD::iterate<iterator>(this->begin(), this->begin() + sup);
 		}
 		PSTD::iterate<const_iterator> operator() (size_t sup) const {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > m_size) sup = m_size;
 			return PSTD::iterate<const_iterator>(this->cbegin(), this->cbegin() + sup);
 		}
 		PSTD::iterate<iterator> operator() (size_t inf, size_t sup) {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > m_size) sup = m_size;
 			return PSTD::iterate<iterator>(this->begin() + inf, this->begin() + sup);
 		}
 		PSTD::iterate<const_iterator> operator() (size_t inf, size_t sup) const {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > m_size) sup = m_size;
 			return PSTD::iterate<const_iterator>(this->cbegin() + inf, this->cbegin() + sup);
 		}
 
@@ -1670,19 +1665,19 @@ namespace PSTD {
 			return PSTD::iterate<const_iterator>(this->cbegin(), this->cend());
 		}
 		PSTD::iterate<iterator> operator() (size_t sup) { 
-			if (sup > this->m_size) sup = m_size;
+			if (sup > this->m_size) sup = this->m_size;
 			return PSTD::iterate<iterator>(this->begin(), this->begin() + sup);
 		}
 		PSTD::iterate<const_iterator> operator() (size_t sup) const {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > this->m_size) sup = this->m_size;
 			return PSTD::iterate<const_iterator>(this->cbegin(), this->cbegin() + sup);
 		}
 		PSTD::iterate<iterator> operator() (size_t inf, size_t sup) {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > this->m_size) sup = this->m_size;
 			return PSTD::iterate<iterator>(this->begin() + inf, this->begin() + sup);
 		}
 		PSTD::iterate<const_iterator> operator() (size_t inf, size_t sup) const {
-			if (sup > this->m_size) sup = m_size;
+			if (sup > this->m_size) sup = this->m_size;
 			return PSTD::iterate<const_iterator>(this->cbegin() + inf, this->cbegin() + sup);
 		}
 
