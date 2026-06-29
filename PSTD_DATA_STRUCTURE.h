@@ -15,24 +15,57 @@
 namespace PSTD {
 
 
-	template <typename _OBJ>
-	using iterator_type = decltype(std::declval<_OBJ>().begin());
-	template <typename _OBJ>
-	using reverse_iterator_type = decltype(std::declval<_OBJ>().rbegin());
+	/*------------------------------------------------------------------------*/
+	/* META PROGRAMING                                                        */
+	/*------------------------------------------------------------------------*/
 
+
+	/* Type gathering                                                         */
+	template <typename _OBJ>
+	using iterator_type_of = decltype(std::declval<_OBJ>().begin());
+	template <typename _OBJ>
+	using reverse_iterator_type_of = decltype(std::declval<_OBJ>().rbegin());
+
+
+	/* Container iterator compatibility tests                                 */
 	template <class _OBJ, class = void>
 	struct has_begin : std::false_type {};
 	template <class _OBJ>
 	struct has_begin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().begin()) > > : std::true_type {};
-
 	template <class _OBJ, class = void>
 	struct has_end : std::false_type {};
 	template <class _OBJ>
 	struct has_end<_OBJ, std::void_t< decltype(std::declval<_OBJ>().end()) > > : std::true_type {};
 
-	
+	template <class _OBJ, class = void>
+	struct has_rbegin : std::false_type {};
+	template <class _OBJ>
+	struct has_rbegin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().rbegin()) > > : std::true_type {};
+	template <class _OBJ, class = void>
+	struct has_rend : std::false_type {};
+	template <class _OBJ>
+	struct has_rend<_OBJ, std::void_t< decltype(std::declval<_OBJ>().rend()) > > : std::true_type {};
+
+	template <class _OBJ, class = void>
+	struct has_cbegin : std::false_type {};
+	template <class _OBJ>
+	struct has_cbegin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().cbegin()) > > : std::true_type {};
+	template <class _OBJ, class = void>
+	struct has_cend : std::false_type {};
+	template <class _OBJ>
+	struct has_cend<_OBJ, std::void_t< decltype(std::declval<_OBJ>().cend()) > > : std::true_type {};
+
+	template <class _OBJ, class = void>
+	struct has_crbegin : std::false_type {};
+	template <class _OBJ>
+	struct has_crbegin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().crbegin()) > > : std::true_type {};
+	template <class _OBJ, class = void>
+	struct has_crend : std::false_type {};
+	template <class _OBJ>
+	struct has_crend<_OBJ, std::void_t< decltype(std::declval<_OBJ>().crend()) > > : std::true_type {};
 
 
+	/* iterator compatibility tests                                           */
 	template <class _OBJ, class = void>
 	struct has_increment: std::false_type {};
 	template <class _OBJ>
@@ -53,35 +86,56 @@ namespace PSTD {
 	struct is_valid_iterator : std::integral_constant<bool, PSTD::has_increment<_OBJ>::value && PSTD::has_dereference<_OBJ>::value && PSTD::has_not_equal<_OBJ>::value> {};
 	
 
-
-	template <class _Container>
+	/* Iterate objects, it's very usefull                                     */
+	template <class _IteratorType>
 	class iterate {
-	public:
-		static_assert(PSTD::has_begin<_Container>::value&& PSTD::has_end<_Container>::value, "_Container must have begin() and end() method");
-		using IteratorType = decltype(std::declval<_Container>().begin());
-		static_assert(PSTD::is_valid_iterator<IteratorType>::value, "Iterator must sastify minimal requirements to be iterable");
 	private:
-		IteratorType first;
-		IteratorType finish;
+		_IteratorType first;
+		_IteratorType finish;
 
 	public:
 
 
-		IteratorType begin() {
+		_IteratorType begin() {
 			return first;
 		}
 
-		IteratorType end() {
+		_IteratorType end() {
 			return finish;
 		}
 
-
-		iterate(_Container& container) : first(container.begin()), finish(container.end()) {}
-		iterate(_Container& container, size_t inf) : first(container.begin() + inf), finish(container.end()) {}
-		iterate(_Container& container, size_t inf, size_t sup) : first(container.begin() + inf), finish(container.begin() + sup) {}
-		iterate(IteratorType inf, IteratorType sup) :first(inf), finish(sup) {}
+		iterate(_IteratorType inf, _IteratorType sup) :first(inf), finish(sup) {}
 	};
 
+	template<class _Container>
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container& container) {
+		return iterate<PSTD::iterator_type_of<_Container>>(container.begin(), container.end());
+	}
+	template<class _Container>
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container& container, size_t sup) {
+		return iterate<PSTD::iterator_type_of<_Container>>(container.begin(), container.begin() + sup);
+	}
+	template<class _Container>
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container& container,size_t inf, size_t sup) {
+		return iterate<PSTD::iterator_type_of<_Container>>(container.begin() + inf, container.begin() + sup);
+	}
+
+	template<class _Container>
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container& container) {
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin(), container.rend());
+	}
+	template<class _Container>
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container& container, size_t sup) {
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin(), container.rbegin() + sup);
+	}
+	template<class _Container>
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container& container, size_t inf, size_t sup) {
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin() + inf, container.rbegin() + sup);
+	}
+
+
+
+	/* DATA STRUCTURES                                                        */
 	class PyRange {
 		size_t inf = 0;
 		size_t sup;
@@ -125,7 +179,7 @@ namespace PSTD {
 	};
 
 #if !defined(PSTD_DATA_STRUCTURE_NO_IOSTREAM)
-	//Classe de teste, a mesma age como o tipo nativo t. Porém a mesma gera saidas de console ao longo do processo
+	/*lifetime, is very used to test lifetimes of objects*/
 	template <typename t>
 	class lifetime {
 		t val = {};
@@ -478,6 +532,29 @@ namespace PSTD {
 		array(array& copy) = default;
 
 
+		PSTD::iterate<iterator> operator() () {
+			return PSTD::iterate<iterator>(this->begin(), this->end());
+		}
+		PSTD::iterate<const_iterator> operator() ()const {
+			return PSTD::iterate<const_iterator>(this->cbegin(), this->cend());
+		}
+		PSTD::iterate<iterator> operator() (size_t sup) {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<iterator>(this->begin(), this->begin() + sup);
+		}
+		PSTD::iterate<const_iterator> operator() (size_t sup) const {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<const_iterator>(this->cbegin(), this->cbegin() + sup);
+		}
+		PSTD::iterate<iterator> operator() (size_t inf, size_t sup) {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<iterator>(this->begin() + inf, this->begin() + sup);
+		}
+		PSTD::iterate<const_iterator> operator() (size_t inf, size_t sup) const {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<const_iterator>(this->cbegin() + inf, this->cbegin() + sup);
+		}
+
 	};
 
 #if !defined(PSTD_DATA_STRUCTURE_NO_IOSTREAM)
@@ -665,7 +742,7 @@ namespace PSTD {
 		template <class _InIt, std::enable_if_t<!std::is_integral_v<_InIt>, int> = 0>
 		smart_array(_InIt first, _InIt last, const Alloc& _alloc = Alloc())
 			: m_size(std::distance(first, last)), m_capacity(m_size > 2 ? m_size : 2), alloc(_alloc) {
-
+			static_assert(PSTD::is_valid_iterator<_InIt>::value, "_InIt must be a proper iterator with the proprer operations overload");
 			m_arr = traits::allocate(alloc, m_capacity);
 
 			this->deep_copy_from_iterators<_InIt>(first, last);
@@ -674,7 +751,10 @@ namespace PSTD {
 		template <class _Container>
 		smart_array(_Container& container, const Alloc& _alloc = Alloc())
 			: m_size(std::distance(container.begin(), container.end())), m_capacity(m_size > 2 ? m_size : 2), alloc(_alloc) {
+			static_assert(PSTD::has_begin<_Container>::value, "_Container must have begin()");
+			static_assert(PSTD::has_end<_Container>::value, "_Container must have end()");
 			using _InIt = decltype(std::declval<_Container>().begin());
+			static_assert(PSTD::is_valid_iterator<_InIt>::value, "_Container.begin() return type must be a valid iterator, with the necessary operations");
 			//decltype(*container.begin());
 
 			m_arr = traits::allocate(alloc, m_capacity);
@@ -770,7 +850,10 @@ namespace PSTD {
 			return *this;
 		}
 		template <class _Container> PSTD::smart_array<t, Alloc>& operator= (_Container& container) {
+			static_assert(PSTD::has_begin<_Container>::value, "_Container must have begin()");
+			static_assert(PSTD::has_end<_Container>::value, "_Container must have end()");
 			using _InIt = typename _Container::iterator;
+			static_assert(PSTD::is_valid_iterator<_InIt>::value, "_Container.begin() return type must be a valid iterator, with the necessary operations");
 
 			this->clear();
 
@@ -1580,23 +1663,27 @@ namespace PSTD {
 			return m_arr[index];
 		}
 
-
-		PSTD::iterate<PSTD::smart_array<t, Alloc>> operator() (size_t sup) { 
-			if (sup > this->m_size) sup = m_size;
-			return PSTD::iterate<PSTD::smart_array<t, Alloc>>(*this, 0, sup);
+		PSTD::iterate<iterator> operator() (){
+			return PSTD::iterate<iterator>(this->begin(), this->end());
 		}
-		PSTD::iterate<const PSTD::smart_array<t, Alloc>> operator() (size_t sup) const {
-			if (sup > this->m_size) sup = m_size;
-			return PSTD::iterate<PSTD::smart_array<t, Alloc>>(*this, 0, sup);
+		PSTD::iterate<const_iterator> operator() ()const{
+			return PSTD::iterate<const_iterator>(this->cbegin(), this->cend());
 		}
-
-		PSTD::iterate<PSTD::smart_array<t, Alloc>> operator() (size_t inf, size_t sup) {
+		PSTD::iterate<iterator> operator() (size_t sup) { 
 			if (sup > this->m_size) sup = m_size;
-			return PSTD::iterate<PSTD::smart_array<t, Alloc>>(*this, inf, sup);
+			return PSTD::iterate<iterator>(this->begin(), this->begin() + sup);
 		}
-		PSTD::iterate<const PSTD::smart_array<t, Alloc>> operator() (size_t inf, size_t sup) const {
+		PSTD::iterate<const_iterator> operator() (size_t sup) const {
 			if (sup > this->m_size) sup = m_size;
-			return PSTD::iterate<const PSTD::smart_array<t, Alloc>>(*this, inf, sup);
+			return PSTD::iterate<const_iterator>(this->cbegin(), this->cbegin() + sup);
+		}
+		PSTD::iterate<iterator> operator() (size_t inf, size_t sup) {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<iterator>(this->begin() + inf, this->begin() + sup);
+		}
+		PSTD::iterate<const_iterator> operator() (size_t inf, size_t sup) const {
+			if (sup > this->m_size) sup = m_size;
+			return PSTD::iterate<const_iterator>(this->cbegin() + inf, this->cbegin() + sup);
 		}
 
 		// acess the element in the index position. Any index out of range will force the array to grow,.
@@ -1699,7 +1786,6 @@ namespace PSTD {
 			}
 
 		}
-
 		os << ']';
 		return os;
 	}
@@ -1783,6 +1869,7 @@ namespace PSTD {
 
 	template<typename t, class ForwardIt>
 	void iota(ForwardIt first, ForwardIt last, t value, t step = 1) {
+		static_assert(PSTD::is_valid_iterator<ForwardIt>::value, "ForwardIt must be a proper iterator, with the necessay operators overload");
 		for (; first != last; ++first, value += step) {
 			*first = value;
 		}
@@ -1790,12 +1877,17 @@ namespace PSTD {
 
 	template<typename t, class _Container>
 	void iota(_Container& container, t value, t step = 1) {
-		using ForwardIt = decltype(std::begin(std::declval<_Container&>()));
+		static_assert(PSTD::has_begin<_Container>::value, "_Container must have begin()");
+		static_assert(PSTD::has_end<_Container>::value, "_Container must have end()");
+		using ForwardIt = PSTD::iterator_type_of<_Container>;
 		return PSTD::iota<t, ForwardIt>(container.begin(), container.end(), value, step);
 	}
 
 	template<typename t, class _Container>
 	void iota(PSTD::iterate<_Container> iterators, t value, t step = 1) {
+		static_assert(PSTD::has_begin<_Container>::value, "_Container must have begin()");
+		static_assert(PSTD::has_end<_Container>::value, "_Container must have end()");
+
 		using ForwardIt = typename PSTD::iterate<_Container>::IteratorType;
 		return PSTD::iota<t, ForwardIt>(iterators.begin(), iterators.end(), value, step);
 	}
