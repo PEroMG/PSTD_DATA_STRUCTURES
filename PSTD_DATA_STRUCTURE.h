@@ -25,6 +25,12 @@ namespace PSTD {
 	using iterator_type_of = decltype(std::declval<_OBJ>().begin());
 	template <typename _OBJ>
 	using reverse_iterator_type_of = decltype(std::declval<_OBJ>().rbegin());
+	template <typename _OBJ>
+	using const_iterator_type_of = decltype(std::declval<_OBJ>().cbegin());
+	template <typename _OBJ>
+	using const_reverse_iterator_type_of = decltype(std::declval<_OBJ>().crbegin());
+	template <typename _OBJ>
+	using dereference_type_of = std::remove_reference_t<decltype(*std::declval<_OBJ>())>;
 
 
 	/* Container iterator compatibility tests                                 */
@@ -32,59 +38,145 @@ namespace PSTD {
 	struct has_begin : std::false_type {};
 	template <class _OBJ>
 	struct has_begin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().begin()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_begin_v = PSTD::has_begin<_OBJ>::value;
+
 	template <class _OBJ, class = void>
 	struct has_end : std::false_type {};
 	template <class _OBJ>
 	struct has_end<_OBJ, std::void_t< decltype(std::declval<_OBJ>().end()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_end_v = PSTD::has_end<_OBJ>::value;
 
 	template <class _OBJ, class = void>
 	struct has_rbegin : std::false_type {};
 	template <class _OBJ>
 	struct has_rbegin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().rbegin()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_rbegin_v = PSTD::has_rbegin<_OBJ>::value;
+
 	template <class _OBJ, class = void>
 	struct has_rend : std::false_type {};
 	template <class _OBJ>
 	struct has_rend<_OBJ, std::void_t< decltype(std::declval<_OBJ>().rend()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_rend_v = PSTD::has_rend<_OBJ>::value;
+
 
 	template <class _OBJ, class = void>
 	struct has_cbegin : std::false_type {};
 	template <class _OBJ>
 	struct has_cbegin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().cbegin()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_cbegin_v = PSTD::has_cbegin<_OBJ>::value;
+
 	template <class _OBJ, class = void>
 	struct has_cend : std::false_type {};
 	template <class _OBJ>
 	struct has_cend<_OBJ, std::void_t< decltype(std::declval<_OBJ>().cend()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_cend_v = PSTD::has_cend<_OBJ>::value;
 
 	template <class _OBJ, class = void>
 	struct has_crbegin : std::false_type {};
 	template <class _OBJ>
 	struct has_crbegin<_OBJ, std::void_t< decltype(std::declval<_OBJ>().crbegin()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_crbegin_v = PSTD::has_crbegin<_OBJ>::value;
+
 	template <class _OBJ, class = void>
 	struct has_crend : std::false_type {};
 	template <class _OBJ>
 	struct has_crend<_OBJ, std::void_t< decltype(std::declval<_OBJ>().crend()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_crend_v = PSTD::has_crend<_OBJ>::value;
 
 
 	/* iterator compatibility tests                                           */
 	template <class _OBJ, class = void>
-	struct has_increment: std::false_type {};
+	struct has_increment : std::false_type {};
 	template <class _OBJ>
 	struct has_increment<_OBJ, std::void_t< decltype(std::declval<_OBJ>().operator++()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_increment_v = PSTD::has_increment<_OBJ>::value;
+
 
 	template <class _OBJ, class = void>
-	struct has_dereference: std::false_type{};
+	struct has_dereference : std::false_type {};
 	template <class _OBJ>
 	struct has_dereference<_OBJ, std::void_t< decltype(std::declval<_OBJ>().operator*()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_dereference_v = PSTD::has_dereference<_OBJ>::value;
+
 
 	template <class _OBJ, class = void>
 	struct has_not_equal : std::false_type {};
 	template <class _OBJ>
 	struct has_not_equal<_OBJ, std::void_t< decltype(std::declval<_OBJ>() != std::declval<_OBJ>()) > > : std::true_type {};
+	template <class _OBJ> constexpr bool has_not_equal_v = PSTD::has_not_equal<_OBJ>::value;
 
-	
+
 	template <class _OBJ>
-	struct is_valid_iterator : std::integral_constant<bool, PSTD::has_increment<_OBJ>::value && PSTD::has_dereference<_OBJ>::value && PSTD::has_not_equal<_OBJ>::value> {};
-	
+	struct is_valid_iterator : std::integral_constant<bool, PSTD::has_increment<_OBJ>::value&& PSTD::has_dereference<_OBJ>::value&& PSTD::has_not_equal<_OBJ>::value> {};
+	template <class _OBJ> constexpr bool is_valid_iterator_v = PSTD::is_valid_iterator<_OBJ>::value;
+
+
+	/* Iterate objects given an condition, it's very usefull                  */
+	template <class _IteratorType, class Func>
+	class conditional_iterate {
+		_IteratorType first;
+		_IteratorType finish;
+		Func func;
+	public:
+
+		class fake_iterator {
+			_IteratorType _it;
+			_IteratorType &finish;
+			Func &condition;
+
+		public: 
+
+			using iterator_category = std::forward_iterator_tag;
+			using value_type = dereference_type_of<_IteratorType>;
+			using difference_type = std::ptrdiff_t;
+			using pointer = dereference_type_of<_IteratorType>*;
+			using reference = dereference_type_of<_IteratorType>&;
+
+			fake_iterator(_IteratorType iterator, _IteratorType & final, Func& function) :\
+				_it(iterator), finish(final), condition(function){
+				while (_it != finish && !condition(*_it)) {
+					if (!(_it != finish)) break; // se for o mesmo nao iteramos
+					++_it;
+				}
+			}
+
+			bool operator==(const fake_iterator& fake) const {
+				return _it == fake._it;
+			}
+			bool operator!=(const fake_iterator& fake) {
+				return _it != fake._it;
+			}
+
+			auto& operator*() {
+				return *_it;
+			}
+
+			PSTD::conditional_iterate<_IteratorType, Func>::fake_iterator& operator++() {
+				
+				do{
+					++_it; 
+					if (!(_it != finish)) break;
+				} while (!condition(*_it));
+				return *this;
+			}
+			fake_iterator operator++(int) {
+				fake_iterator temp = *this;
+				++(*this);
+				return temp;
+			}
+		};
+
+		conditional_iterate<_IteratorType, Func>::fake_iterator begin() {
+			return PSTD::conditional_iterate<_IteratorType, Func>::fake_iterator(first, finish, func);
+		}
+		conditional_iterate<_IteratorType, Func>::fake_iterator end() {
+			return PSTD::conditional_iterate<_IteratorType, Func>::fake_iterator(finish, finish, func);
+		}
+		
+		conditional_iterate(_IteratorType inf, _IteratorType sup, Func condition) :first(inf), finish(sup), func(condition) {
+			static_assert(PSTD::is_valid_iterator<_IteratorType>::value, "_IteratorType must be a proprer iterator with all the necessary overloads");
+		}
+	};
 
 	/* Iterate objects, it's very usefull                                     */
 	template <class _IteratorType>
@@ -92,9 +184,9 @@ namespace PSTD {
 	private:
 		_IteratorType first;
 		_IteratorType finish;
-		
-	public:
 
+	public:
+		
 
 		_IteratorType begin() {
 			return first;
@@ -107,37 +199,142 @@ namespace PSTD {
 		iterate(_IteratorType inf, _IteratorType sup) :first(inf), finish(sup) {
 			static_assert(PSTD::is_valid_iterator<_IteratorType>::value, "_IteratorType must be a proprer iterator with all the necessary overloads");
 		}
+
+		template <class Func>
+		PSTD::conditional_iterate<_IteratorType, Func> only_if(Func condition) {
+			return PSTD::conditional_iterate< _IteratorType, Func>(first, finish, condition);
+		}
+
+		template <typename _It = _IteratorType, std::enable_if_t< std::is_same_v<typename std::iterator_traits<_It>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+		PSTD::iterate<_IteratorType> start_from(size_t offset){
+			first = first + offset;
+			return *this;
+		}
+		template <typename _It = _IteratorType, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<_It>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+		PSTD::iterate<_IteratorType> start_from(size_t offset) {
+			for (size_t i = 0; i < offset; i++) first++;
+			return *this;
+		}
 	};
 
 	template<class _Container>
-	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container& container) {
+	iterate<PSTD::iterator_type_of<_Container>> 
+	Iterate_Through(_Container&& container) {
 		return iterate<PSTD::iterator_type_of<_Container>>(container.begin(), container.end());
 	}
-	template<class _Container>
-	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container& container, size_t sup) {
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container&& container, size_t sup) {
 		return iterate<PSTD::iterator_type_of<_Container>>(container.begin(), container.begin() + sup);
 	}
-	template<class _Container>
-	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container& container,size_t inf, size_t sup) {
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container&& container, size_t sup) {
+		auto it = container.begin();
+		for (size_t i = 0; i < sup; i++) it++; // if it only has ++ 0perator
+		return iterate<PSTD::iterator_type_of<_Container>>(container.begin(), it);
+	}
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container&& container, size_t inf, size_t sup) {
+		
 		return iterate<PSTD::iterator_type_of<_Container>>(container.begin() + inf, container.begin() + sup);
 	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::iterator_type_of<_Container>> Iterate_Through(_Container&& container, size_t inf, size_t sup) {
+		auto it_inf = container.begin();
+		for (size_t i = 0; i < inf; i++) it_inf++;
+		auto it_sup = it_inf;
+		for (size_t i = inf; i < sup; i++) it_sup++;
 
+		return iterate<PSTD::iterator_type_of<_Container>>(it_inf, it_sup);
+	}
+	
+	
 	template<class _Container>
-	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container& container) {
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container&& container) {
 		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin(), container.rend());
 	}
-	template<class _Container>
-	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container& container, size_t sup) {
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container&& container, size_t sup) {
 		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin(), container.rbegin() + sup);
 	}
-	template<class _Container>
-	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container& container, size_t inf, size_t sup) {
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container&& container, size_t inf, size_t sup) {
 		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin() + inf, container.rbegin() + sup);
+	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container&& container, size_t sup) {
+		auto it = container.rbegin();
+		for (size_t i = 0; i < sup; i++) it++; // if it only has ++ 0perator
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.rbegin(), it);
+	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> RIterate_Through(_Container&& container, size_t inf, size_t sup) {
+		auto it_inf = container.rbegin();
+		for (size_t i = 0; i < inf; i++) it_inf++;
+		auto it_sup = it_inf;
+		for (size_t i = inf; i < sup; i++) it_sup++;
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(it_inf, it_sup);
 	}
 
 
+	template<class _Container>
+	iterate<PSTD::const_iterator_type_of<_Container>> CIterate_Through(_Container&& container) {
+		return iterate<PSTD::const_iterator_type_of<_Container>>(container.cbegin(), container.cend());
+	}
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::const_iterator_type_of<_Container>> CIterate_Through(_Container&& container, size_t sup) {
+		return iterate<PSTD::const_iterator_type_of<_Container>>(container.cbegin(), container.cbegin() + sup);
+	}
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::const_iterator_type_of<_Container>> CIterate_Through(_Container&& container, size_t inf, size_t sup) {
+		return iterate<PSTD::const_iterator_type_of<_Container>>(container.cbegin() + inf, container.cbegin() + sup);
+	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> CIterate_Through(_Container&& container, size_t sup) {
+		auto it = container.cbegin();
+		for (size_t i = 0; i < sup; i++) it++; // if it only has ++ 0perator
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.cbegin(), it);
+	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> CIterate_Through(_Container&& container, size_t inf, size_t sup) {
+		auto it_inf = container.cbegin();
+		for (size_t i = 0; i < inf; i++) it_inf++;
+		auto it_sup = it_inf;
+		for (size_t i = inf; i < sup; i++) it_sup++;
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(it_inf, it_sup);
+	}
+
+	template<class _Container>
+	iterate<PSTD::const_reverse_iterator_type_of<_Container>> CRIterate_Through(_Container&& container) {
+		return iterate<PSTD::const_reverse_iterator_type_of<_Container>>(container.crbegin(), container.crend());
+	}
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::const_reverse_iterator_type_of<_Container>> CRIterate_Through(_Container&& container, size_t sup) {
+		return iterate<PSTD::const_reverse_iterator_type_of<_Container>>(container.crbegin(), container.crbegin() + sup);
+	}
+	template< class _Container, std::enable_if_t< std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::const_reverse_iterator_type_of<_Container>> CRIterate_Through(_Container&& container, size_t inf, size_t sup) {
+		return iterate<PSTD::const_reverse_iterator_type_of<_Container>>(container.crbegin() + inf, container.crbegin() + sup);
+	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> CRIterate_Through(_Container&& container, size_t sup) {
+		auto it = container.crbegin();
+		for (size_t i = 0; i < sup; i++) it++; // if it only has ++ 0perator
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(container.crbegin(), it);
+	}
+	template< class _Container, std::enable_if_t< !std::is_same_v<typename std::iterator_traits<iterator_type_of<_Container>>::iterator_category, std::random_access_iterator_tag>, bool> = true >
+	iterate<PSTD::reverse_iterator_type_of<_Container>> CRIterate_Through(_Container&& container, size_t inf, size_t sup) {
+		auto it_inf = container.crbegin();
+		for (size_t i = 0; i < inf; i++) it_inf++;
+		auto it_sup = it_inf;
+		for (size_t i = inf; i < sup; i++) it_sup++;
+		return iterate<PSTD::reverse_iterator_type_of<_Container>>(it_inf, it_sup);
+	}
+
+	
 
 	/* DATA STRUCTURES                                                        */
+
+
 	class PyRange {
 		size_t inf = 0;
 		size_t sup;
@@ -153,22 +350,51 @@ namespace PSTD {
 		class fake_iterator {
 			size_t val;
 			size_t& stp;
-
 		public:
+
+			using iterator_category = std::random_access_iterator_tag;
+			using value_type = size_t;
+			using difference_type = std::ptrdiff_t;
+			using pointer = size_t*;
+			using reference = size_t&;
+
 			fake_iterator(size_t position, size_t& step) :val(position), stp(step) {}
 
 			bool operator!=(const fake_iterator& fake) {
-				return this->val <= fake.val;
+				return this->val < fake.val;
+			}
+			bool operator==(const fake_iterator& fake) {
+				return this->val > fake.val;
 			}
 
-			PSTD::PyRange::fake_iterator operator++() {
+			PSTD::PyRange::fake_iterator& operator++() {
 				val += stp;
 				return *this;
+			}
+			size_t operator++(int) {
+				size_t old_value = val;
+				val += stp;
+				return val;
 			}
 
 			size_t& operator*() {
 				return val;
 			}
+
+			difference_type operator-(const fake_iterator & fake) {
+				// inf + n * stp > sup
+				// n > (sup - inf) / stp
+				// n = ceil( (sup - inf) / stp )
+				// n = floor( (sup - inf) / stp ) + 1
+
+				if ((this->val - fake.val) / this->stp != ((float)(this->val - fake.val)) / this->stp) {
+					return (this->val - fake.val) / this->stp + 1;
+				}
+				
+				return (this->val - fake.val) / this->stp;
+			}
+
+
 		};
 
 		PSTD::PyRange::fake_iterator begin() {
@@ -177,6 +403,11 @@ namespace PSTD {
 
 		PSTD::PyRange::fake_iterator end() {
 			return PSTD::PyRange::fake_iterator(sup, stp);
+		}
+
+		template <class Func>
+		PSTD::conditional_iterate<PSTD::PyRange::fake_iterator, Func> only_if(Func condition) {
+			return PSTD::conditional_iterate< PSTD::PyRange::fake_iterator, Func>(this->begin(), this->end(), condition);
 		}
 	};
 
@@ -472,14 +703,6 @@ namespace PSTD {
 			return &internal_array[0];
 		}
 
-		ty& ring_acess(size_t index) {
-			if (m_size == 0) { throw std::logic_error("The size of smart_array cannot be zero when it is acessed"); }
-			return internal_array[index % m_size];
-		}
-		const ty& ring_acess(size_t index) const {
-			if (m_size == 0) { throw std::logic_error("The size of smart_array cannot be zero when it is acessed"); }
-			return internal_array[index % m_size];
-		}
 
 		void swap(PSTD::array<ty, m_size>& other) noexcept {
 			for (size_t i = 0; i < m_size; i++) {
@@ -543,10 +766,12 @@ namespace PSTD {
 		}
 		PSTD::iterate<iterator> operator() (size_t inf, size_t sup) {
 			if (sup > m_size) sup = m_size;
+			if (inf > sup) inf = sup;
 			return PSTD::iterate<iterator>(this->begin() + inf, this->begin() + sup);
 		}
 		PSTD::iterate<const_iterator> operator() (size_t inf, size_t sup) const {
 			if (sup > m_size) sup = m_size;
+			if (inf > sup) inf = sup;
 			return PSTD::iterate<const_iterator>(this->cbegin() + inf, this->cbegin() + sup);
 		}
 
@@ -1605,7 +1830,7 @@ namespace PSTD {
 		}
 
 		t& at(size_t index) {
-			if(index >= m_size) {
+			if (index >= m_size) {
 				throw std::out_of_range("tryied to acess element (index >= m_size)");
 			}
 			return m_arr[index];
@@ -1658,13 +1883,13 @@ namespace PSTD {
 			return m_arr[index];
 		}
 
-		PSTD::iterate<iterator> operator() (){
+		PSTD::iterate<iterator> operator() () {
 			return PSTD::iterate<iterator>(this->begin(), this->end());
 		}
-		PSTD::iterate<const_iterator> operator() ()const{
+		PSTD::iterate<const_iterator> operator() ()const {
 			return PSTD::iterate<const_iterator>(this->cbegin(), this->cend());
 		}
-		PSTD::iterate<iterator> operator() (size_t sup) { 
+		PSTD::iterate<iterator> operator() (size_t sup) {
 			if (sup > this->m_size) sup = this->m_size;
 			return PSTD::iterate<iterator>(this->begin(), this->begin() + sup);
 		}
@@ -1674,10 +1899,12 @@ namespace PSTD {
 		}
 		PSTD::iterate<iterator> operator() (size_t inf, size_t sup) {
 			if (sup > this->m_size) sup = this->m_size;
+			if (inf > sup) inf = sup;
 			return PSTD::iterate<iterator>(this->begin() + inf, this->begin() + sup);
 		}
 		PSTD::iterate<const_iterator> operator() (size_t inf, size_t sup) const {
 			if (sup > this->m_size) sup = this->m_size;
+			if (inf > sup) inf = sup;
 			return PSTD::iterate<const_iterator>(this->cbegin() + inf, this->cbegin() + sup);
 		}
 
@@ -1694,16 +1921,6 @@ namespace PSTD {
 				m_size = index + 1;
 			}
 			return m_arr[index];
-		}
-
-
-		t& ring_acess(size_t index) {
-			if (m_size == 0) { throw std::logic_error("The size of smart_array cannot be zero when it is acessed"); }
-			return m_arr[index % m_size];
-		}
-		const t& ring_acess(size_t index) const {
-			if (m_size == 0) { throw std::logic_error("The size of smart_array cannot be zero when it is acessed"); }
-			return m_arr[index % m_size];
 		}
 
 		t& back() {
@@ -1786,6 +2003,30 @@ namespace PSTD {
 	}
 #endif 
 
+
+	template< class t, class Alloc = std::allocator<t>, class U>
+	typename PSTD::smart_array<t, Alloc>::size_type erase(PSTD::smart_array<t, Alloc>& arr, U value) {
+		using ForwardIt = typename PSTD::smart_array<t, Alloc>::iterator;
+		using Diference_type = typename PSTD::smart_array<t, Alloc>::difference_type;
+
+		auto it = std::remove<ForwardIt, U>(arr.begin(), arr.end(), value);
+		auto r = arr.end() - it;
+		arr.erase(it, arr.end());
+		return r;
+	}
+
+	template< class t, class Alloc = std::allocator<t>, class Func>
+	typename PSTD::smart_array<t, Alloc>::size_type erase_if(PSTD::smart_array<t, Alloc>& arr, Func func) {
+		using ForwardIt = typename PSTD::smart_array<t, Alloc>::iterator;
+		using Diference_type = typename PSTD::smart_array<t, Alloc>::difference_type;
+
+		auto it = std::remove_if<ForwardIt, Func>(arr.begin(), arr.end(), func);
+		auto r = arr.end() - it;
+		arr.erase(it, arr.end());
+		return r;
+	}
+
+
 	template<class t = double, class Alloc = std::allocator<t>>
 	PSTD::smart_array<t, Alloc> linspace(t inf, t sup, size_t n_elements) {
 
@@ -1822,45 +2063,7 @@ namespace PSTD {
 
 		return arr;
 	}
-	template<typename t = double, class Alloc = std::allocator<t>>
-	PSTD::smart_array<t, Alloc> arrange(t from, t to, t step) {
-		// sup < inf + step * i
-		// sup - inf < step * i
-		// (sup - inf)/step < i
-		// since we have that i need to be bigger than (sup - inf)/step, the ceil will be enough
 
-		size_t n_size = std::ceil((to - from) / step);
-
-		PSTD::smart_array<t, Alloc> arr(n_size);
-
-		for (size_t i = 0; i < n_size; i++) {
-			arr[i] = fma(step, i, from);
-		}
-
-		return arr;
-	}
-
-	template< class t, class Alloc = std::allocator<t>, class U>
-	typename PSTD::smart_array<t, Alloc>::size_type erase(PSTD::smart_array<t, Alloc>& arr, U value) {
-		using ForwardIt = typename PSTD::smart_array<t, Alloc>::iterator;
-		using Diference_type = typename PSTD::smart_array<t, Alloc>::difference_type;
-
-		auto it = std::remove<ForwardIt, U>(arr.begin(), arr.end(), value);
-		auto r = arr.end() - it;
-		arr.erase(it, arr.end());
-		return r;
-	}
-
-	template< class t, class Alloc = std::allocator<t>, class Func>
-	typename PSTD::smart_array<t, Alloc>::size_type erase_if(PSTD::smart_array<t, Alloc>& arr, Func func) {
-		using ForwardIt = typename PSTD::smart_array<t, Alloc>::iterator;
-		using Diference_type = typename PSTD::smart_array<t, Alloc>::difference_type;
-
-		auto it = std::remove_if<ForwardIt, Func>(arr.begin(), arr.end(), func);
-		auto r = arr.end() - it;
-		arr.erase(it, arr.end());
-		return r;
-	}
 
 	template<typename t, class ForwardIt>
 	void iota(ForwardIt first, ForwardIt last, t value, t step = 1) {
@@ -1887,5 +2090,24 @@ namespace PSTD {
 		return PSTD::iota<t, ForwardIt>(iterators.begin(), iterators.end(), value, step);
 	}
 
+	
+	template<typename t = double, class Alloc = std::allocator<t>>
+	PSTD::smart_array<t, Alloc> arrange(t from, t to, t step) {
+		// sup < inf + step * i
+		// sup - inf < step * i
+		// (sup - inf)/step < i
+		// since we have that i need to be bigger than (sup - inf)/step, the ceil will be enough
+
+		size_t n_size = std::ceil((to - from) / step);
+
+		PSTD::smart_array<t, Alloc> arr(n_size);
+
+		for (size_t i = 0; i < n_size; i++) {
+			arr[i] = step * i + from;
+		}
+
+		return arr;
+	}
+	
 
 }
